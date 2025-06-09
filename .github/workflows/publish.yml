@@ -91,7 +91,7 @@ jobs:
 
       - name: Publish to PyPI
         if: steps.should_run.outputs.updated == 'true'
-        uses: pypa/gh-action-pypi-publish@v1
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
