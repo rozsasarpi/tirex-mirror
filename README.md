@@ -50,3 +50,6 @@ twine upload dist/*
 
 ### Cleanup after testing
 
+```bash
+git clean -Xfd
+```
