@@ -56,7 +56,7 @@ jobs:
       - name: Patch pyproject.toml
         if: steps.should_run.outputs.updated == 'true'
         run: |
-          VERSION="$(date +%Y.%m.%d)"
+          VERSION="$(date +%Y.%m.%d)dev01"
           
           # Install toml library and patch the pyproject.toml
           pip install toml
@@ -99,7 +99,7 @@ jobs:
       - name: Create GitHub Release
         if: steps.should_run.outputs.updated == 'true'
         run: |
-          VERSION="$(date +%Y.%m.%d)"
+          VERSION="$(date +%Y.%m.%d)dev01"
           UPSTREAM_COMMIT_SHORT="${{ steps.fetch_hash.outputs.latest_hash }}"
           UPSTREAM_COMMIT_SHORT="${UPSTREAM_COMMIT_SHORT:0:7}"
           
