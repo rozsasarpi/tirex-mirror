@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout mirror repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch latest commit hash from upstream
         id: fetch_hash
@@ -91,7 +91,7 @@ jobs:
 
       - name: Publish to PyPI
         if: steps.should_run.outputs.updated == 'true'
-        uses: pypa/gh-action-pypi-publish@v1.8.8
+        uses: pypa/gh-action-pypi-publish@v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
