@@ -1,0 +1,13 @@
+ # Ignore everything by default
+*
+
+# But track these specific mirror files
+!.gitignore
+!.github/
+!.github/**
+!latest_tirex_commit.txt
+!LICENSE
+!README.md
+!NOTICE.txt
+!LICENSE_MIRROR.txt
+!MANIFEST.in

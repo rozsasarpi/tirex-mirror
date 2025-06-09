@@ -1,0 +1,107 @@
+name: Sync and Publish tirex-mirror
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"  # Daily at 4 AM UTC
+
+jobs:
+  sync-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mirror repository
+        uses: actions/checkout@v3
+
+      - name: Fetch latest commit hash from upstream
+        id: fetch_hash
+        run: |
+          LATEST_HASH=$(git ls-remote https://github.com/NX-AI/tirex.git refs/heads/main | cut -f1)
+          echo "latest_hash=$LATEST_HASH" >> $GITHUB_OUTPUT
+
+      - name: Check if update is needed
+        id: should_run
+        run: |
+          if [ -f latest_tirex_commit.txt ]; then
+            LAST_HASH=$(cat latest_tirex_commit.txt)
+          else
+            LAST_HASH="none"
+          fi
+          if [ "$LAST_HASH" = "${{ steps.fetch_hash.outputs.latest_hash }}" ]; then
+            echo "No new commit. Skipping."
+            echo "updated=false" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "updated=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Clone Upstream Repo
+        if: steps.should_run.outputs.updated == 'true'
+        run: git clone https://github.com/NX-AI/tirex.git upstream
+
+      - name: Copy updated source and LICENSE
+        if: steps.should_run.outputs.updated == 'true'
+        run: |
+          # Copy upstream content to root, excluding mirror-specific files
+          rsync -av \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='README.md' \
+            --exclude='MANIFEST.in' \
+            --exclude='NOTICE.txt' \
+            --exclude='LICENSE_MIRROR.txt' \
+            upstream/ ./
+
+      - name: Patch pyproject.toml
+        if: steps.should_run.outputs.updated == 'true'
+        run: |
+          DATE=$(date +%Y%m%d)
+          VERSION="1.0.0+mirror.$DATE"
+          
+          # Install toml library and patch the pyproject.toml
+          pip install toml
+          
+          python3 << EOF
+          import toml
+
+          # Load the original pyproject.toml
+          with open('upstream/pyproject.toml', 'r') as f:
+              data = toml.load(f)
+
+          # Update specific fields
+          data['project']['name'] = 'tirex-mirror'
+          data['project']['version'] = '$VERSION'
+          data['project']['authors'] = [{'name': 'Arpad Rozsas', 'email': 'rozsasarpi@gmail.com'}]
+          data['project']['description'] = 'Unofficial mirror of NX-AI/tirex for packaging'
+
+          # Update URLs
+          data['project']['urls']['Repository'] = 'https://github.com/rozsasarpi/tirex-mirror'
+          data['project']['urls']['Issues'] = 'https://github.com/rozsasarpi/tirex-mirror/issues'
+
+          # Write the modified pyproject.toml
+          with open('pyproject.toml', 'w') as f:
+              toml.dump(data, f)
+          EOF
+
+      - name: Install build dependencies and build package
+        if: steps.should_run.outputs.updated == 'true'
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        if: steps.should_run.outputs.updated == 'true'
+        uses: pypa/gh-action-pypi-publish@v1.8.8
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Record latest commit hash
+        if: steps.should_run.outputs.updated == 'true'
+        run: |
+          echo "${{ steps.fetch_hash.outputs.latest_hash }}" > latest_tirex_commit.txt
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add latest_tirex_commit.txt LICENSE
+          git commit -m "Update to upstream commit ${{ steps.fetch_hash.outputs.latest_hash }}"
+          git push
