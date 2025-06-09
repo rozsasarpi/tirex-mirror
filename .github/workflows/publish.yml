@@ -103,14 +103,6 @@ jobs:
           UPSTREAM_COMMIT_SHORT="${{ steps.fetch_hash.outputs.latest_hash }}"
           UPSTREAM_COMMIT_SHORT="${UPSTREAM_COMMIT_SHORT:0:7}"
           
-          # Configure git for tagging
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          # Create git tag
-          git tag "v$VERSION"
-          git push origin "v$VERSION"
-          
           # Create release notes
           cat > release_notes.md << EOF
           ## TiRex Mirror Release v$VERSION
@@ -137,7 +129,7 @@ jobs:
           - \`tirex_mirror-$VERSION-py3-none-any.whl\` - Universal wheel
           EOF
           
-          # Create GitHub release
+          # Create GitHub release (this automatically creates the tag)
           gh release create "v$VERSION" \
             --title "TiRex Mirror v$VERSION" \
             --notes-file release_notes.md \
